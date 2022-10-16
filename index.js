@@ -73,7 +73,7 @@ app.post("/multiple_email_info", async (req, res) => {
             emailInformation.push({
                 email,
                 whiteListed: whiteListed !== null,
-                numReports: reports.length
+                numReports: reports.length * 31,
             })
 
         }
@@ -125,7 +125,7 @@ app.post("/start_report_process", async (req, res) => {
         const reportExists = await reportModel.findOne({
             email,
             description,
-            phone,
+            phoneNumber,
             verifiedPhone: true,
         });
         if (reportExists) {
@@ -136,7 +136,10 @@ app.post("/start_report_process", async (req, res) => {
         const phone = await phoneNumberModel.findOne({
             phoneNumber,
         });
-        const isPhoneVerified = phone && phone.verifiedPhone
+        let isPhoneVerified = phone && phone.verifiedPhone
+        if (isPhoneVerified == null) {
+            isPhoneVerified = false;
+        }
         const newReport = await reportModel.create({
             email,
             description,
@@ -157,22 +160,24 @@ app.post("/start_report_process", async (req, res) => {
 })
 
 app.post("/generate_code", async (req, res) => {
-    const requestId = req.body.requestId;
-    const request = await requestModel.findOne({
-        _id: requestId,
+    const reportId = req.body.reportId;
+    console.log(reportId);
+    const report = await reportModel.findOne({
+        _id: reportId,
     });
-    if (!request) {
+    if (!report) {
         return res.status(403).json({
-            message: "Request does not exist with provided request id",
+            message: "Request does not exist with provided report id",
         })
     }
     const generatedCode = generateCode(CODE_LENGTH);
+    console.log(generatedCode);
     let phone = await phoneNumberModel.findOne({
-        phoneNumber: request.phoneNumber,
+        phoneNumber: report.phoneNumber,
     });
     if (!phone) {
         phone = await phoneNumberModel.create({
-            phoneNumber: request.phoneNumber,
+            phoneNumber: report.phoneNumber,
             verified: false,
         })
     }
@@ -187,15 +192,15 @@ app.post("/generate_code", async (req, res) => {
 
 app.post("/enter_code", async (req, res) => {
     const code = req.body.code;
-    const requestId = req.body.requestId;
+    const reportId = req.body.reportId;
     const phoneNumber = req.body.phoneNumber;
 
-    const request = await requestModel.findOne({
-        _id: requestId,
+    const report = await reportModel.findOne({
+        _id: reportId,
     })
-    if (!request) {
+    if (!report) {
         return res.status(403).json({
-            message: "No request",
+            message: "No report",
         })
     }
 
@@ -212,11 +217,12 @@ app.post("/enter_code", async (req, res) => {
         phone.verified = true;
         await phone.save();
 
-        request.verifiedPhone = true;
-        await request.save();
+        report.verifiedPhone = true;
+        await report.save();
 
         return res.json({
-            message: "Completed request",
+            message: "Completed report",
+            success: true,
         })
     }
     return res.status(401).json({
