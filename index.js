@@ -11,14 +11,14 @@ const whiteListModel = require('./models/WhiteList')
 
 const sendCode = require('./utils/twilioUtils').sendCode
 const generateCode = require('./utils/codeUtils').generateCode
-const PhoneNumber = require("./models/PhoneNumber")
 
 const CODE_LENGTH = 4;
 
 app.use(express.json())
+app.use(express.urlencoded({extended: true,}))
 app.use(cors())
 
-mongoose.connect("mongodb+srv://prakuls18:<password>@cluster0.j48yxbw.mongodb.net/test", 
+mongoose.connect("mongodb+srv://prakuls18:PrakulIsCool@cluster0.j48yxbw.mongodb.net/test", 
 {
     useNewURLParser: true,
 });
@@ -56,7 +56,7 @@ app.get("/email_info/:email_id", async (req, res) => {
     }
 })
 
-app.get("/multiple_email_info", async (req, res) => {
+app.post("/multiple_email_info", async (req, res) => {
     try {
         const emailInformation = []
         const emails = req.body.emails;
@@ -121,7 +121,7 @@ app.post("/start_report_process", async (req, res) => {
     try {
         const email = req.body.email;
         const description = req.body.description;
-        const phone = req.body.phone;
+        const phoneNumber = req.body.phoneNumber;
         const reportExists = await reportModel.findOne({
             email,
             description,
@@ -134,7 +134,7 @@ app.post("/start_report_process", async (req, res) => {
             })
         }
         const phone = await phoneNumberModel.findOne({
-            phoneNumber: phone,
+            phoneNumber,
         });
         const isPhoneVerified = phone && phone.verifiedPhone
         const newReport = await reportModel.create({
@@ -222,4 +222,8 @@ app.post("/enter_code", async (req, res) => {
     return res.status(401).json({
         message: "Incorrect code",
     })
+})
+
+app.listen(3000, () => {
+  console.log(`Example app listening on port 3000`)
 })
